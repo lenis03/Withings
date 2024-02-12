@@ -51,7 +51,7 @@ def get_weight_from_withings_api(user_id, access_token):
     }
     response = requests.get(url, headers=headers, params=params)
     data = response.json()
-    if "body" in data:
+    if "body" in data and "measuregrps" in data["body"]:
         weight = data["body"]["measuregrps"][0]["measures"][0]["value"]
         return weight
     else:
