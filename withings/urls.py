@@ -1,6 +1,6 @@
 from django.urls import path
-from .views import fetch_user_weight
+from .views import WeightView
 
 urlpatterns = [
-    path('fetch_weight/<str:user_id>/', fetch_user_weight, name='fetch_weight'),
+    path('api/weight/', WeightView.as_view(), name='weight_api'),
 ]
