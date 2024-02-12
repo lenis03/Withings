@@ -1,9 +1,10 @@
-from django.shortcuts import render
 import requests
+from django.shortcuts import render
+from .models import WeightRecord
 
 CLIENT_ID = "C95a81700f3b41f85045913166168479208be836632b7634ce49d09ff53b17d6"
 CLIENT_SECRET = "157f794d869ca64df0e5bdadc541ed9e7c48da13629299039fbed668e3f6987b"
-REDIRECT_URI = "http://127.0.0.1:8000/withings/callback/"
+REDIRECT_URI = "YOUR_REDIRECT_URI"
 AUTHORIZE_URL = "https://account.withings.com/oauth2/authorize2"
 TOKEN_URL = "https://account.withings.com/oauth2/token"
 
@@ -27,24 +28,42 @@ def get_access_token(code):
     return response.json()
 
 
-def get_user_weight(access_token):
-    headers = {"Authorization": f"Bearer {access_token}"}
-    url = "https://wbsapi.withings.net/measure?action=getmeas"
-    response = requests.get(url, headers=headers)
+def refresh_access_token(refresh_token):
+    data = {
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "refresh_token": refresh_token,
+        "grant_type": "refresh_token",
+    }
+    response = requests.post(TOKEN_URL, data=data)
     return response.json()
 
 
-def weight_view(request):
-    authorize_url = get_authorize_url()
-    
-    if request.method == 'GET':
-        code = request.GET.get('code')
-        
-        if code:
-            access_token_data = get_access_token(code)
-            access_token = access_token_data["access_token"]
-            user_weight_data = get_user_weight(access_token)
-            weight = user_weight_data["body"]["measures"][0]["value"] / 1000  # convert to kilograms
-            return render(request, 'withings/weight.html', {'weight': weight})
-        
-        return render(request, 'withings/authorize.html', {'authorize_url': authorize_url})
+def get_weight_from_withings_api(user_id, access_token):
+    url = "https://wbsapi.withings.net/measure"
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    params = {
+        "action": "getmeas",
+        "meastype": 1,  # weight measurement
+        "userid": user_id
+    }
+    response = requests.get(url, headers=headers, params=params)
+    data = response.json()
+    if "body" in data:
+        weight = data["body"]["measuregrps"][0]["measures"][0]["value"]
+        return weight
+    else:
+        return None
+
+
+def fetch_user_weight(request, user_id):
+    # Replace "?" with the actual access token obtained through OAuth 2.0
+    access_token = "YOUR_ACCESS_TOKEN_HERE"
+    weight = get_weight_from_withings_api(user_id, access_token)
+    if weight:
+        WeightRecord.objects.create(user_id=user_id, weight=weight)
+        return render(request, "success.html", {"weight": weight})
+    else:
+        return render(request, "error.html")
