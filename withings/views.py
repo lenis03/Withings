@@ -64,6 +64,6 @@ def fetch_user_weight(request, user_id):
     weight = get_weight_from_withings_api(user_id, access_token)
     if weight:
         WeightRecord.objects.create(user_id=user_id, weight=weight)
-        return render(request, "success.html", {"weight": weight})
+        return render(request, "withings/success.html", {"weight": weight})
     else:
-        return render(request, "error.html")
+        return render(request, "withings/error.html")
